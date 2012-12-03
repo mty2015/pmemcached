@@ -1,83 +1,40 @@
-import socket
-from hashutils import ConsistentHash 
-
-
-CR = '\x0d'
-LF = '\x0a'
-
-
-def getSocket(address):
-    s = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-    s.connect(address)
-    return s 
-
-class StreamHandler:
-    
-    BUFFER_SIZE = 1024
-
-    def __init__(self,socket):
-        self.socket = socket
-        self.read_buffer = ''
-
-    def write(self,s):
-        msg_len = len(s)
-        total_len = 0
-        while total_len < msg_len:
-            sent = self.socket.send(s[total_len:])
-            if sent == 0:
-                raise IOError('socket is broken')
-            total_len = total_len + sent
-    
-    def read(self,size):
-        while True:
-            if len(self.read_buffer) >= size:
-                data = self.read_buffer[:size]
-                self.read_buffer = self.read_buffer[size:]
-                return data
-            readed = self.socket.recv(size - len(self.read_buffer))
-            if readed == '':
-                raise IOError('socket is broken')
-            self.read_buffer = self.read_buffer + readed
-
-
-    def read_line(self):
-        while True:
-            sep_index = self.read_buffer.find(CR + LF)
-            if sep_index != -1:
-                line =  self.read_buffer[:sep_index]
-                self.read_buffer = self.read_buffer[sep_index + 2:]
-                return line
-            readed = self.socket.recv(StreamHandler.BUFFER_SIZE)
-            if readed == '':
-                raise IOError('socket is broken')
-            self.read_buffer = self.read_buffer + readed
-            
-            
-
-
+# -*- coding:utf-8 -*-
+from streambuffer import StreamHandlerFactory
+from protocol import *
 
 class SocketFactory:
     def __init__(self,ip_list):
         self.consistent        
 
+class StoreException(Exception):
+    def __init__(self,msg):
+        self.msg = msg
+    
+    def __str__(self):
+        return self.msg
 
 class PMemcachedClient:
     
     def __init__(self,cache_servers_conf):
-        self.cache_servers = ConsistentHash(cache_servers_conf,5)
-
+        self.streamHandlerFactory = StreamHandlerFactory(cache_servers_conf)
 
     def get(self,key):
-        handler = StreamHandler(getSocket(self.cache_servers.get(key)))
-        handler.write('get ' + key + CR + LF)
+        handler = self.streamHandlerFactory.getStreamHandler(key)
+        handler.write_line('get ' + key)
         meta = handler.read_line()
         print meta
         data = handler.read(12)
         print data
-
-        
+    
+    def add(self,key,value,tracking_data=0,exptime=0,asyn=False):
+        handler = self.streamHandlerFactory.getStreamHandler(key)
+        handler.write_line(assemble_store_command("add",key,value,tracking_data,exptime,asyn))
+        handler.write_line(value)
+        if asyn: #asyn means don't required to read feedback
+            return
+        return parse_store_reply(handler.read_line())
 
 if __name__ == '__main__':
-    cache_servers = (('localhost',11211),)
+    cache_servers = (('184.82.204.80',11211),)
     client = PMemcachedClient(cache_servers)
-    print client.get('abc')
+    print client.add('tony3',u'李'.encode('gbk'))

@@ -3,8 +3,8 @@ import random
 import string
 
 
-def gen_hash_code(object):
-    return int(md5.new(object).hexdigest(),16) 
+def gen_hash_code(obj):
+    return int(md5.new(obj).hexdigest(),16) 
 
 class Hash:
     def __init__(self,cache_servers):
@@ -16,7 +16,7 @@ class Hash:
     def add(self,cache):
         self.cache_servers.append(cache)
 
-    def get(key):
+    def get(self,key):
         pass
 
 class BasicHash(Hash):
@@ -26,12 +26,13 @@ class BasicHash(Hash):
 
 class ConsistentHash(Hash):
     def __init__(self,cache_servers,number_of_replicas=1):
+        self.number_of_replicas = number_of_replicas
         self.cicle = {}
         for cache in cache_servers:
             self.add(cache,number_of_replicas)
 
     def remove(self,cache):
-        for i in range(number_of_replicas):
+        for i in range(self.number_of_replicas):
             self.cicle.remove(gen_hash_code(cache[0] + str(i)))
 
     def add(self,cache,number_of_replicas=1):
