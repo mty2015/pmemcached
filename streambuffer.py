@@ -5,6 +5,8 @@ from hashutils import ConsistentHash ,BasicHash
 CR = '\x0d'
 LF = '\x0a'
 
+socket.setdefaulttimeout(10)
+
 class StreamHandler:
     
     BUFFER_SIZE = 1024

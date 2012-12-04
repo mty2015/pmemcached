@@ -18,13 +18,10 @@ class PMemcachedClient:
     def __init__(self,cache_servers_conf):
         self.streamHandlerFactory = StreamHandlerFactory(cache_servers_conf)
 
-    def get(self,key):
+    def get(self,key,cas=False):
         handler = self.streamHandlerFactory.getStreamHandler(key)
-        handler.write_line('get ' + key)
-        meta = handler.read_line()
-        print meta
-        data = handler.read(12)
-        print data
+        handler.write_line(assemble_get_command(key,cas))
+        return parse_get_reply(handler,cas)
     
     def add(self,key,value,tracking_data=0,exptime=0,asyn=False):
         handler = self.streamHandlerFactory.getStreamHandler(key)
@@ -32,9 +29,9 @@ class PMemcachedClient:
         handler.write_line(value)
         if asyn: #asyn means don't required to read feedback
             return
-        return parse_store_reply(handler.read_line())
+        return parse_store_reply(handler)
 
 if __name__ == '__main__':
-    cache_servers = (('184.82.204.80',11211),)
+    cache_servers = (('192.168.1.101',11211),('192.168.1.121',11211),('192.148.1.6',11211))
     client = PMemcachedClient(cache_servers)
-    print client.add('tony3',u'李'.encode('gbk'))
+    print client.get('tony4',True)

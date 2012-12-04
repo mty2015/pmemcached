@@ -4,7 +4,7 @@
 ```python
 import pmemcached
 
-cache_servers = (('184.82.204.80',11211),) #缓存服务器列表
+cache_servers = (('192.168.1.101',11211),('192.168.1.121',11211),('192.148.1.6',11211)) #缓存服务器列表
 client = PMemcachedClient(cache_servers) #创建客户端对象
 client.add('id001','54844') #往缓存服务器存值 
 print client.get('id001') #往缓存服务器取值
